@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 /* ─────────────────────────────────────────────
    🪙 숨은 보조금 찾아드림
@@ -69,6 +69,47 @@ const COND = {
   JA0401:"다문화",JA0402:"북한이탈",JA0403:"한부모/조손",JA0404:"1인가구",JA0411:"다자녀",JA0412:"무주택",
 };
 
+// ── AdBanner (카드 사이 광고) ──────────────
+function AdBanner({ slot = "XXXXXXXXXX" }) {
+  const ref = useRef(null);
+  const pushed = useRef(false);
+  useEffect(() => {
+    if (ref.current && !pushed.current) {
+      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); pushed.current = true; } catch {}
+    }
+  }, []);
+  return (
+    <div style={{ margin: "6px 0", minHeight: 100, background: "#f9f5ed", borderRadius: 12, overflow: "hidden", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed rgba(27,67,50,.08)" }}>
+      <ins className="adsbygoogle" ref={ref} style={{ display: "block", width: "100%" }}
+        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+        data-ad-slot={slot}
+        data-ad-format="auto"
+        data-full-width-responsive="true" />
+    </div>
+  );
+}
+
+// ── Privacy Policy Modal ──────────────────
+function PrivacyModal({ open, onClose }) {
+  if (!open) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div style={{ background: "#fff", borderRadius: 16, maxWidth: 420, width: "100%", maxHeight: "80vh", overflow: "auto", padding: 24 }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontFamily: "'Black Han Sans'", fontSize: 20, color: "#1B4332", marginBottom: 12 }}>개인정보처리방침</h2>
+        <div style={{ fontSize: 13, color: "#444", lineHeight: 1.8 }}>
+          <p><b>1. 수집하는 개인정보</b><br />본 서비스는 별도의 회원가입 없이 이용 가능하며, 개인정보를 직접 수집하지 않습니다.</p>
+          <p style={{ marginTop: 10 }}><b>2. 쿠키 및 광고</b><br />본 서비스는 Google AdSense를 통해 광고를 게재하며, 이 과정에서 쿠키가 사용될 수 있습니다. 사용자는 브라우저 설정을 통해 쿠키 사용을 거부할 수 있습니다.</p>
+          <p style={{ marginTop: 10 }}><b>3. 데이터 출처</b><br />본 서비스에서 제공하는 보조금 정보는 행정안전부 보조금24 공공데이터포털 API를 통해 제공받고 있습니다.</p>
+          <p style={{ marginTop: 10 }}><b>4. 제3자 서비스</b><br />- Google AdSense (광고)<br />- Vercel (호스팅)<br />- 공공데이터포털 (데이터 API)</p>
+          <p style={{ marginTop: 10 }}><b>5. 문의</b><br />서비스 관련 문의는 이메일로 연락 바랍니다.</p>
+          <p style={{ marginTop: 10, color: "#999", fontSize: 11 }}>시행일: 2025년 2월 7일</p>
+        </div>
+        <button onClick={onClose} style={{ marginTop: 16, width: "100%", padding: 11, borderRadius: 10, border: "none", background: "#1B4332", color: "#E8A838", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "'Noto Sans KR'" }}>닫기</button>
+      </div>
+    </div>
+  );
+}
+
 // ── App ────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState("splash");
@@ -91,6 +132,7 @@ export default function App() {
   const [openId, setOpenId]   = useState(null);
   const [conds, setConds]     = useState(null);
   const [condLoad, setCondL]  = useState(false);
+  const [privacy, setPrivacy] = useState(false);
   const timer = useRef(null);
 
   // splash
@@ -230,7 +272,9 @@ export default function App() {
             const open = openId===it.id;
             const fav = favs.includes(it.id);
             return (
-              <div key={it.id} style={{...Z.card,animation:`cardPop .35s ease ${idx*.04}s both`}}>
+              <React.Fragment key={it.id}>
+              {idx > 0 && idx % 5 === 0 && <AdBanner slot={`ad-slot-${idx}`} />}
+              <div style={{...Z.card,animation:`cardPop .35s ease ${idx*.04}s both`}}>
                 {/* top */}
                 <div style={Z.cTop}>
                   <span style={{...Z.badge,background:ci.bg}}>{ci.e} {it.category||"기타"}</span>
@@ -285,6 +329,7 @@ export default function App() {
                   {it.link&&<a href={it.link} target="_blank" rel="noopener noreferrer" style={Z.aBtn}>정부24에서 보기 →</a>}
                 </div>
               </div>
+              </React.Fragment>
             );
           })}
 
@@ -296,7 +341,8 @@ export default function App() {
         </>}
       </div>
 
-      <div style={Z.foot}><div style={Z.footIn}>💡 데이터 출처: 행정안전부 보조금24 · 공공데이터포털</div></div>
+      <PrivacyModal open={privacy} onClose={()=>setPrivacy(false)} />
+      <div style={Z.foot}><div style={Z.footIn}>💡 데이터 출처: 행정안전부 보조금24 · 공공데이터포털<br/><span onClick={()=>setPrivacy(true)} style={{cursor:"pointer",textDecoration:"underline",opacity:.7}}>개인정보처리방침</span></div></div>
     </div>
   );
 }
