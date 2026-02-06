@@ -81,7 +81,7 @@ function AdBanner({ slot = "XXXXXXXXXX" }) {
   return (
     <div style={{ margin: "6px 0", minHeight: 100, background: "#f9f5ed", borderRadius: 12, overflow: "hidden", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed rgba(27,67,50,.08)" }}>
       <ins className="adsbygoogle" ref={ref} style={{ display: "block", width: "100%" }}
-        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+        data-ad-client="ca-pub-6735356659801736"
         data-ad-slot={slot}
         data-ad-format="auto"
         data-full-width-responsive="true" />
