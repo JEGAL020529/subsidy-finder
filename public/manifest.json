@@ -1,0 +1,16 @@
+{
+  "name": "숨은 보조금 찾아드림",
+  "short_name": "보조금찾기",
+  "description": "10,000개 이상의 정부 보조금을 한눈에",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1B4332",
+  "theme_color": "#1B4332",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
