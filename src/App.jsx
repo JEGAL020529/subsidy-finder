@@ -6,10 +6,11 @@ import React, { useState, useEffect, useRef } from "react";
    ───────────────────────────────────────────── */
 
 // ── API helpers (프록시 경유) ───────────────
-async function apiServices({ page = 1, perPage = 20, search = "", category = "" } = {}) {
+async function apiServices({ page = 1, perPage = 20, search = "", category = "", userType = "" } = {}) {
   const p = new URLSearchParams({ page, perPage });
   if (search) p.set("search", search);
   if (category) p.set("category", category);
+  if (userType) p.set("userType", userType);
   const r = await fetch(`/api/services?${p}`);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
@@ -125,6 +126,9 @@ export default function App() {
   const [query, setQuery]     = useState("");
   const [userF, setUserF]     = useState("all");
   const [catF, setCatF]       = useState("전체");
+  const [age, setAge]         = useState(() => localStorage.getItem("profile_age") || "");
+  const [region, setRegion]   = useState(() => localStorage.getItem("profile_region") || "");
+  const [showProfile, setShowProfile] = useState(false);
   const [favs, setFavs]       = useState(() => {
     try { return JSON.parse(localStorage.getItem("favs") || "[]"); } catch { return []; }
   });
@@ -144,18 +148,21 @@ export default function App() {
   // debounce search
   const onInput = v => { setInput(v); clearTimeout(timer.current); timer.current = setTimeout(() => setQuery(v), 400); };
 
-  // reload on filter change
-  useEffect(() => { if (screen === "main") load(1, true); }, [query, catF]);
+  // reload on filter change (all server-side)
+  useEffect(() => { if (screen === "main") load(1, true); }, [query, catF, userF]);
 
-  // persist favs
+  // persist favs & profile
   useEffect(() => { localStorage.setItem("favs", JSON.stringify(favs)); }, [favs]);
+  useEffect(() => { if (age) localStorage.setItem("profile_age", age); }, [age]);
+  useEffect(() => { if (region) localStorage.setItem("profile_region", region); }, [region]);
 
   // ── load data ───
   const load = async (p = 1, reset = false) => {
     reset ? setLoad(true) : setMore(true);
     try {
       const cat = catF === "전체" ? "" : catF.split("·")[0];
-      const json = await apiServices({ page: p, perPage: 20, search: query, category: cat });
+      const ut = userF === "all" ? "" : userF;
+      const json = await apiServices({ page: p, perPage: 20, search: query, category: cat, userType: ut });
       const rows = (json.data || []).map(d => ({
         id: d["서비스ID"]||"", name: d["서비스명"]||"", summary: d["서비스목적요약"]||"",
         target: d["지원대상"]||"", content: d["지원내용"]||"", how: d["신청방법"]||"",
@@ -179,13 +186,9 @@ export default function App() {
     setCondL(false);
   };
 
-  // ── client filters ───
+  // ── client filters (user type is now server-side) ───
   const display = items.filter(i => {
     if (favOnly && !favs.includes(i.id)) return false;
-    if (userF !== "all") {
-      const hay = `${i.target}${i.userType}${i.name}${i.summary}`;
-      if (!hay.includes(userF)) return false;
-    }
     return true;
   });
 
@@ -223,7 +226,34 @@ export default function App() {
               {" "}총 <b>{total.toLocaleString()}</b>건의 보조금
             </p>
           </div>
+          <button onClick={()=>setShowProfile(!showProfile)} style={Z.profBtn}>
+            {age||region ? "👤" : "⚙️"} {age ? `${age}세` : ""}{age&&region?" · ":""}{region||""}
+            {!age&&!region&&" 내 정보"}
+          </button>
         </div>
+
+        {/* profile panel */}
+        {showProfile && (
+          <div style={Z.profPanel}>
+            <div style={Z.profRow}>
+              <div style={Z.profField}>
+                <label style={Z.profLabel}>🎂 나이</label>
+                <input type="number" inputMode="numeric" value={age} onChange={e=>setAge(e.target.value)}
+                  placeholder="예: 28" style={Z.profInput} min="0" max="120" />
+              </div>
+              <div style={Z.profField}>
+                <label style={Z.profLabel}>📍 지역</label>
+                <select value={region} onChange={e=>setRegion(e.target.value)} style={Z.profSelect}>
+                  <option value="">전체</option>
+                  {["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"].map(r=>(
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {(age||region) && <p style={Z.profHint}>💡 {age?`${age}세`:""}{age&&region?" · ":""}{region?`${region} 거주`:""} 조건으로 맞춤 결과를 보여드려요</p>}
+          </div>
+        )}
 
         {/* search */}
         <div style={Z.sW}>
@@ -253,7 +283,7 @@ export default function App() {
       {/* ── result count ── */}
       <div style={Z.rBar}>
         {loading ? <span style={{animation:"pulse 1.2s infinite"}}>🔍 보물 탐색 중...</span>
-        : <>🎯 <b>{display.length}</b>건 발견{query&&<span style={Z.qTag}>"{query}"</span>}</>}
+        : <>🎯 <b>{total.toLocaleString()}</b>건 발견{query&&<span style={Z.qTag}>"{query}"</span>}{userF!=="all"&&<span style={Z.qTag}>{userF}</span>}{catF!=="전체"&&<span style={{...Z.qTag,background:"#E3F2FD",color:"#1565C0"}}>{catF}</span>}</>}
       </div>
 
       {/* ── cards ── */}
@@ -394,6 +424,15 @@ const Z={
   hRow:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10},
   logo:{fontFamily:"'Black Han Sans'",fontSize:19,color:C.gl,letterSpacing:-.5},
   hMeta:{color:"rgba(255,255,255,.6)",fontSize:11,marginTop:2},
+
+  profBtn:{flexShrink:0,padding:"5px 10px",borderRadius:9,border:"1px solid rgba(255,255,255,.2)",background:"rgba(255,255,255,.08)",color:"rgba(255,255,255,.8)",fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans KR'",whiteSpace:"nowrap"},
+  profPanel:{background:"rgba(255,255,255,.1)",borderRadius:10,padding:12,marginBottom:8,animation:"fadeUp .2s ease-out"},
+  profRow:{display:"flex",gap:8},
+  profField:{flex:1},
+  profLabel:{display:"block",fontSize:11,color:"rgba(255,255,255,.6)",marginBottom:3},
+  profInput:{width:"100%",padding:"7px 10px",borderRadius:8,border:"none",background:"rgba(255,255,255,.15)",color:C.w,fontSize:13,fontFamily:"'Noto Sans KR'"},
+  profSelect:{width:"100%",padding:"7px 10px",borderRadius:8,border:"none",background:"rgba(255,255,255,.15)",color:C.w,fontSize:13,fontFamily:"'Noto Sans KR'",appearance:"none"},
+  profHint:{marginTop:8,fontSize:11,color:C.gl,opacity:.8},
 
   sW:{position:"relative",marginBottom:8},
   sI:{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,opacity:.55},

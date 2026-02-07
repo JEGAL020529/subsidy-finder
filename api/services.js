@@ -5,11 +5,12 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET");
 
-  const { page = 1, perPage = 20, search = "", category = "" } = req.query;
+  const { page = 1, perPage = 20, search = "", category = "", userType = "" } = req.query;
 
   let url = `${BASE}/serviceList?serviceKey=${encodeURIComponent(API_KEY)}&page=${page}&perPage=${perPage}&returnType=JSON`;
   if (search) url += `&cond[서비스명::LIKE]=${encodeURIComponent(search)}`;
   if (category) url += `&cond[서비스분야::LIKE]=${encodeURIComponent(category)}`;
+  if (userType) url += `&cond[사용자구분::LIKE]=${encodeURIComponent(userType)}`;
 
   try {
     const response = await fetch(url);
