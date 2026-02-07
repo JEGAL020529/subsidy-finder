@@ -139,8 +139,14 @@ export default function App() {
   const [privacy, setPrivacy] = useState(false);
   const timer = useRef(null);
 
-  // splash
-  useEffect(() => { const t = setTimeout(() => setScreen("main"), 1800); return () => clearTimeout(t); }, []);
+  // splash → onboard (first time) or main (returning user)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const hasProfile = localStorage.getItem("profile_age") || localStorage.getItem("profile_region");
+      setScreen(hasProfile ? "main" : "onboard");
+    }, 1800);
+    return () => clearTimeout(t);
+  }, []);
 
   // initial load
   useEffect(() => { if (screen === "main") load(1, true); }, [screen]);
@@ -209,6 +215,54 @@ export default function App() {
   );
 
   // ════════════════════════════════
+  //  ONBOARDING
+  // ════════════════════════════════
+  const REGIONS = ["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
+
+  const startApp = () => {
+    if (age) localStorage.setItem("profile_age", age);
+    if (region) localStorage.setItem("profile_region", region);
+    setScreen("main");
+  };
+
+  if (screen === "onboard") return (
+    <div style={Z.splash}><style>{CSS}</style>
+      <div style={Z.obWrap}>
+        <div style={{fontSize:48,marginBottom:8}}>🪙</div>
+        <h1 style={{fontFamily:"'Black Han Sans'",fontSize:26,color:C.gl,marginBottom:4}}>맞춤 보조금 찾기</h1>
+        <p style={{color:"rgba(255,255,255,.55)",fontSize:13,marginBottom:28}}>간단한 정보만 알려주세요!</p>
+
+        <div style={Z.obField}>
+          <label style={Z.obLabel}>🎂 나이</label>
+          <input type="number" inputMode="numeric" value={age} onChange={e=>setAge(e.target.value)}
+            placeholder="예: 28" style={Z.obInput} min="0" max="120" />
+        </div>
+
+        <div style={Z.obField}>
+          <label style={Z.obLabel}>📍 지역</label>
+          <div style={Z.obSelWrap}>
+            <select value={region} onChange={e=>setRegion(e.target.value)} style={Z.obSelect}>
+              <option value="">선택안함</option>
+              {REGIONS.map(r=><option key={r} value={r}>{r}</option>)}
+            </select>
+            <span style={Z.obSelArr}>▼</span>
+          </div>
+        </div>
+
+        <button onClick={startApp} style={Z.obBtn}>
+          {age||region ? "🔍 내 보조금 찾기" : "건너뛰기 →"}
+        </button>
+
+        {(age||region) && (
+          <p style={{color:C.gl,fontSize:12,marginTop:12,animation:"fadeUp .3s ease-out"}}>
+            💡 {age?`${age}세`:""}{age&&region?" · ":""}{region||""} 조건으로 맞춤 검색할게요!
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+  // ════════════════════════════════
   //  MAIN
   // ════════════════════════════════
   return (
@@ -243,12 +297,15 @@ export default function App() {
               </div>
               <div style={Z.profField}>
                 <label style={Z.profLabel}>📍 지역</label>
-                <select value={region} onChange={e=>setRegion(e.target.value)} style={Z.profSelect}>
-                  <option value="">전체</option>
-                  {["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"].map(r=>(
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
+                <div style={{position:"relative"}}>
+                  <select value={region} onChange={e=>{setRegion(e.target.value);if(e.target.value)localStorage.setItem("profile_region",e.target.value);}} style={{...Z.profSelect,paddingRight:28}}>
+                    <option value="">전체</option>
+                    {["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"].map(r=>(
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  <span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:10,color:"rgba(255,255,255,.5)",pointerEvents:"none"}}>▼</span>
+                </div>
               </div>
             </div>
             {(age||region) && <p style={Z.profHint}>💡 {age?`${age}세`:""}{age&&region?" · ":""}{region?`${region} 거주`:""} 조건으로 맞춤 결과를 보여드려요</p>}
@@ -396,6 +453,8 @@ const CSS=`
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{font-family:'Noto Sans KR',sans-serif;background:${C.cr};-webkit-tap-highlight-color:transparent}
 input:focus{outline:none}
+select{outline:none}
+select option{background:#1B4332;color:#fff;padding:8px}
 ::-webkit-scrollbar{height:3px;width:3px}
 ::-webkit-scrollbar-thumb{background:#C4A265;border-radius:3px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -412,6 +471,16 @@ input:focus{outline:none}
 const Z={
   splash:{height:"100vh",background:`linear-gradient(155deg,${C.f},#0B2218)`,display:"flex",alignItems:"center",justifyContent:"center"},
   si:{textAlign:"center",animation:"fadeUp .6s ease-out"},
+
+  // onboarding
+  obWrap:{textAlign:"center",animation:"fadeUp .5s ease-out",width:"100%",maxWidth:340,padding:"0 20px"},
+  obField:{marginBottom:16,textAlign:"left"},
+  obLabel:{display:"block",fontSize:13,color:"rgba(255,255,255,.7)",marginBottom:5,fontWeight:500},
+  obInput:{width:"100%",padding:"13px 14px",borderRadius:12,border:"2px solid rgba(255,255,255,.15)",background:"rgba(255,255,255,.1)",color:C.w,fontSize:16,fontFamily:"'Noto Sans KR'",caretColor:C.gl},
+  obSelWrap:{position:"relative"},
+  obSelect:{width:"100%",padding:"13px 14px",paddingRight:32,borderRadius:12,border:"2px solid rgba(255,255,255,.15)",background:"rgba(255,255,255,.1)",color:C.w,fontSize:16,fontFamily:"'Noto Sans KR'",appearance:"none",WebkitAppearance:"none",cursor:"pointer"},
+  obSelArr:{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",fontSize:12,color:"rgba(255,255,255,.5)",pointerEvents:"none"},
+  obBtn:{width:"100%",padding:"14px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${C.g},#D4922E)`,color:C.f,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:"'Black Han Sans'",letterSpacing:-.3,marginTop:8,boxShadow:"0 4px 14px rgba(232,168,56,.35)"},
   sIcon:{fontSize:60,display:"block",marginBottom:14,animation:"bounce 1.3s ease-in-out infinite"},
   sTitle:{fontFamily:"'Black Han Sans'",fontSize:32,color:C.gl,lineHeight:1.2,letterSpacing:-1,marginBottom:8},
   sSub:{color:"rgba(255,255,255,.5)",fontSize:12,marginBottom:24},
@@ -431,7 +500,7 @@ const Z={
   profField:{flex:1},
   profLabel:{display:"block",fontSize:11,color:"rgba(255,255,255,.6)",marginBottom:3},
   profInput:{width:"100%",padding:"7px 10px",borderRadius:8,border:"none",background:"rgba(255,255,255,.15)",color:C.w,fontSize:13,fontFamily:"'Noto Sans KR'"},
-  profSelect:{width:"100%",padding:"7px 10px",borderRadius:8,border:"none",background:"rgba(255,255,255,.15)",color:C.w,fontSize:13,fontFamily:"'Noto Sans KR'",appearance:"none"},
+  profSelect:{width:"100%",padding:"7px 10px",borderRadius:8,border:"none",background:"rgba(255,255,255,.15)",color:C.w,fontSize:13,fontFamily:"'Noto Sans KR'",appearance:"none",WebkitAppearance:"none",cursor:"pointer"},
   profHint:{marginTop:8,fontSize:11,color:C.gl,opacity:.8},
 
   sW:{position:"relative",marginBottom:8},
